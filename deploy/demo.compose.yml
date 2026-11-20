@@ -6,7 +6,7 @@ volumes:
 
 services:
   pg:
-    image: postgres:18
+    image: postgres@sha256:e754b839f447639b7004895f4d8a4bfcb4e9dbe3a1bc035f27f646562a16fd61 # 18
     environment:
       POSTGRES_USER: db_user
       POSTGRES_PASSWORD: db_pass
@@ -22,7 +22,7 @@ services:
       retries: 20
 
   redis-standalone:
-    image: redis:7
+    image: redis@sha256:2e3eb11462c4e3759e6972678dd051d150ff54b1e60714b3c33b701260172a90 # 7
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -30,7 +30,7 @@ services:
       retries: 20
 
   superposition:
-    image: ghcr.io/juspay/superposition-demo:0.113.0
+    image: ghcr.io/juspay/superposition-demo@sha256:51f3a310016879b7419ab64e6b6dbc81c739cdf5985f8f4cc19ba6f9384b2c6d # 0.113.0
     environment:
       API_HOSTNAME: http://localhost:8081
       REDIS_URL: redis://redis-standalone:6379
@@ -41,7 +41,7 @@ services:
         condition: service_healthy
 
   hyperswitch-server:
-    image: docker.juspay.io/juspaydotin/hyperswitch-router:standalone
+    image: docker.juspay.io/juspaydotin/hyperswitch-router@sha256:dbbc78845ac1c6dd3cdcc6bd00de11646351b37e2173cca5f32dd723a8021dea # standalone v1.129.0-dirty-cf913c5
     command: /local/bin/router -f /local/config/docker_compose.toml
     environment:
       ROUTER__LOG__CONSOLE__LEVEL: INFO
@@ -67,7 +67,7 @@ services:
       start_period: 20s
 
   hyperswitch-web:
-    image: docker.juspay.io/juspaydotin/hyperswitch-web:latest
+    image: docker.juspay.io/juspaydotin/hyperswitch-web@sha256:e9188fc789f4fd81a2d99f0c28c1c8cdfc9b5c2940a5fac2bf4b1ef9dd35cbea
     ports:
       - "127.0.0.1:9050:9050"
     environment:
@@ -80,7 +80,7 @@ services:
         condition: service_healthy
 
   hyperswitch-control-center:
-    image: docker.juspay.io/juspaydotin/hyperswitch-control-center:latest
+    image: docker.juspay.io/juspaydotin/hyperswitch-control-center@sha256:09f15c92903f8c749dd45a2818b16eeffe10ea99c6c6ed6af4b9e0580df02090
     ports:
       - "127.0.0.1:9000:9000"
     environment:

@@ -3,8 +3,10 @@
 This launcher starts the API, Control Center dashboard, web SDK, PostgreSQL,
 Redis, and Superposition with this checkout's configuration and migrations.
 It uses the upstream prebuilt runtime images from the project's quickstart;
-it does **not** compile this fork's Rust source. The resolved image digests
-are recorded under `.run-evidence/images.json` on each run.
+it does **not** compile this fork's Rust source. All six service images are
+pinned to their observed SHA-256 digests. Image identities are also recorded
+under `.run-evidence/images.json` on each run. The router identifies itself as
+`v1.129.0-dirty-cf913c5`, built from an October 31, 2026 snapshot.
 
 ## Start on a development machine
 
@@ -22,6 +24,9 @@ bash scripts/run_demo.sh up
 After the checks pass, open **http://localhost:9000** on that machine.
 The API is at **http://localhost:8080** and the checkout SDK is served at
 **http://localhost:9050/HyperLoader.js**.
+
+The verifier creates the repository's public local demo account:
+`demo@hyperswitch.com` / `Hyperswitch@123`. Use it only with this isolated demo.
 
 ```bash
 bash scripts/run_demo.sh status
@@ -59,6 +64,9 @@ The upstream seed script is run with Bash, fixing its invocation in the default
 Compose quickstart. The original telemetry hook containers and piped shell
 installers are not started. The seed script still validates its own
 configuration; an incompatible image must fail rather than be counted as ready.
+The HTTP startup wait retries temporary connection resets while the dashboard
+and SDK initialize, with a bounded timeout; the independent verifier then checks
+their actual responses.
 
 The tested standalone router image predates the fork's `ecommpay` connector.
 The launcher generates a demo-only configuration that omits that unsupported

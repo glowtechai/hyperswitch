@@ -25,7 +25,8 @@ require_runtime() {
 capture_images() {
     "${COMPOSE[@]}" config --images | sort -u | while IFS= read -r image; do
         docker image inspect "$image" \
-            --format '{"reference":"{{index .RepoTags 0}}","id":"{{.Id}}","digests":{{json .RepoDigests}}}'
+            --format '{"id":"{{.Id}}","digests":{{json .RepoDigests}}}' \
+            | jq --arg reference "$image" '. + {reference: $reference}'
     done | jq -s . > "$EVIDENCE_DIR/images.json"
 }
 
@@ -44,6 +45,7 @@ def compatible_list(match):
     removed += len(values) - len(supported)
     return match[1] + ','.join(supported) + match[3]
 result = re.sub(r'(connector_list\s*=\s*")([^"\n]*)(")', compatible_list, source)
+assert removed == 2, 'Expected the two known Ecommpay mandate entries; review changed upstream config.'
 tomllib.loads(result)
 pathlib.Path('.demo-tools/router.toml').write_text(result)
 pathlib.Path('.run-evidence/configuration.json').write_text(json.dumps({
@@ -91,8 +93,8 @@ start_demo() {
     "${COMPOSE[@]}" up -d --wait --wait-timeout 180 hyperswitch-server
     "${COMPOSE[@]}" up -d hyperswitch-web hyperswitch-control-center
     for url in http://localhost:9000/ http://localhost:9050/HyperLoader.js; do
-        curl --fail --show-error --silent --retry 20 --retry-connrefused \
-            --retry-delay 2 --max-time 10 "$url" --output /dev/null
+        curl --fail --show-error --silent --retry 20 --retry-all-errors \
+            --retry-delay 2 --retry-max-time 120 --max-time 10 "$url" --output /dev/null
     done
     python3 scripts/verify_demo.py
     printf '\nDemo verified. Dashboard: http://localhost:9000\nAPI: http://localhost:8080\n'
