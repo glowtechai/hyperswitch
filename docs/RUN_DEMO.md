@@ -8,6 +8,28 @@ pinned to their observed SHA-256 digests. Image identities are also recorded
 under `.run-evidence/images.json` on each run. The router identifies itself as
 `v1.129.0-dirty-cf913c5`, built from an October 31, 2026 snapshot.
 
+## Verified execution
+
+[GitHub Actions run 44670472839](https://github.com/glowtechai/hyperswitch/actions/runs/44670472839)
+passed on November 19, 2026, at 7:53 p.m. Pacific. The tested launch commit is
+`e33ad0b675fb6040065baf5412102bacd5e4a2e6`, based on fork source commit
+`062cbb40283005a94d9417604994f41ca6018048`.
+
+| Required check | Observed result |
+| --- | --- |
+| API liveness | Passed: HTTP 200 and expected response body |
+| Dependency readiness | Passed: database, Redis, SQL analytics, and outbound health probe |
+| Dashboard HTTP delivery | Passed: HTML application document with script tag |
+| Checkout SDK HTTP delivery | Passed: JavaScript loader returned successfully |
+| Demo account and profile | Passed: account creation, independent sign-in, authenticated user, merchant, and profile retrieval |
+| Embedded dummy payment | Passed: synthetic USD 1.00 record created and retrieved with `succeeded` status |
+
+All six checks passed with no failures. The workflow uploaded
+`hyperswitch-demo-evidence`, then removed its disposable containers and data.
+Dashboard browser execution, rendered checkout, merchant payment orchestration,
+real card processing, and settlement were outside this test. The run therefore
+establishes a working local demonstration, not production payment readiness.
+
 ## Start on a development machine
 
 Requirements: Linux x86_64, a running Docker engine with Compose v2, Bash,
