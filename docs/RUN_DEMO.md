@@ -60,6 +60,12 @@ Compose quickstart. The original telemetry hook containers and piped shell
 installers are not started. The seed script still validates its own
 configuration; an incompatible image must fail rather than be counted as ready.
 
+The tested standalone router image predates the fork's `ecommpay` connector.
+The launcher generates a demo-only configuration that omits that unsupported
+connector from mandate lists, while preserving the tracked source configuration.
+This compatibility adjustment and the router's reported version are recorded
+with the run evidence. It does not enable a real Ecommpay account.
+
 ## What this does not activate
 
 This demonstration does not change Credo Aminos, WooCommerce, or an existing

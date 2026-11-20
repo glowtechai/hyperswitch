@@ -29,12 +29,41 @@ capture_images() {
     done | jq -s . > "$EVIDENCE_DIR/images.json"
 }
 
+prepare_demo_config() {
+    # The current standalone image predates the fork's Ecommpay connector.
+    # Omit that unsupported mandate entry only in this generated demo config.
+    # Preserve the tracked source configuration for builds from Rust source.
+    python3 - <<'PY'
+import json, pathlib, re, tomllib
+source = pathlib.Path('config/docker_compose.toml').read_text()
+removed = 0
+def compatible_list(match):
+    global removed
+    values = match[2].split(',')
+    supported = [value for value in values if value.strip() != 'ecommpay']
+    removed += len(values) - len(supported)
+    return match[1] + ','.join(supported) + match[3]
+result = re.sub(r'(connector_list\s*=\s*")([^"\n]*)(")', compatible_list, source)
+tomllib.loads(result)
+pathlib.Path('.demo-tools/router.toml').write_text(result)
+pathlib.Path('.run-evidence/configuration.json').write_text(json.dumps({
+    'source': 'config/docker_compose.toml',
+    'demo_only_omitted_connector': 'ecommpay',
+    'omitted_mandate_entries': removed,
+    'reason': 'The upstream standalone image rejects this newer connector enum.'
+}, indent=2) + '\n')
+PY
+}
+
 start_demo() {
     require_runtime
     mkdir -p "$EVIDENCE_DIR" .demo-tools
+    prepare_demo_config
     "${COMPOSE[@]}" config --quiet
     "${COMPOSE[@]}" pull
     capture_images
+    "${COMPOSE[@]}" run --rm --no-deps hyperswitch-server \
+        /local/bin/router --version | tee "$EVIDENCE_DIR/router-version.txt"
     "${COMPOSE[@]}" up -d --wait --wait-timeout 150 pg redis-standalone superposition
 
     # The upstream Compose file invokes this Bash script with Alpine sh.

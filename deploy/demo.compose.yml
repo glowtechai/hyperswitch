@@ -50,6 +50,7 @@ services:
       - "127.0.0.1:8080:8080"
     volumes:
       - ../config:/local/config:ro
+      - ../.demo-tools/router.toml:/local/config/docker_compose.toml:ro
       - ../files:/local/bin/files:ro
     depends_on:
       pg:
