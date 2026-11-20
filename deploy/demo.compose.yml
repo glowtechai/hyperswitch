@@ -1,0 +1,95 @@
+# Local demonstration only. Public example credentials; never expose these ports.
+name: hyperswitch-demo
+
+volumes:
+  pg_data:
+
+services:
+  pg:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: db_pass
+      POSTGRES_DB: hyperswitch_db
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d hyperswitch_db -U db_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis-standalone:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  superposition:
+    image: ghcr.io/juspay/superposition-demo:0.113.0
+    environment:
+      API_HOSTNAME: http://localhost:8081
+      REDIS_URL: redis://redis-standalone:6379
+    ports:
+      - "127.0.0.1:8081:8080"
+    depends_on:
+      redis-standalone:
+        condition: service_healthy
+
+  hyperswitch-server:
+    image: docker.juspay.io/juspaydotin/hyperswitch-router:standalone
+    command: /local/bin/router -f /local/config/docker_compose.toml
+    environment:
+      ROUTER__LOG__CONSOLE__LEVEL: INFO
+      ROUTER__LOG__TELEMETRY__METRICS_ENABLED: "false"
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ../config:/local/config:ro
+      - ../files:/local/bin/files:ro
+    depends_on:
+      pg:
+        condition: service_healthy
+      redis-standalone:
+        condition: service_healthy
+      superposition:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  hyperswitch-web:
+    image: docker.juspay.io/juspaydotin/hyperswitch-web:latest
+    ports:
+      - "127.0.0.1:9050:9050"
+    environment:
+      ENABLE_LOGGING: "false"
+      SDK_ENV: local
+      ENV_LOGGING_URL: http://localhost:3103
+      ENV_BACKEND_URL: http://localhost:8080
+    depends_on:
+      hyperswitch-server:
+        condition: service_healthy
+
+  hyperswitch-control-center:
+    image: docker.juspay.io/juspaydotin/hyperswitch-control-center:latest
+    ports:
+      - "127.0.0.1:9000:9000"
+    environment:
+      configPath: /tmp/dashboard-config.toml
+      themeConfigPath: /tmp/dashboard-theme.json
+    volumes:
+      - ../config/dashboard.toml:/tmp/dashboard-config.toml:ro
+      - ../config/dashboard_theme.json:/tmp/dashboard-theme.json:ro
+    depends_on:
+      hyperswitch-server:
+        condition: service_healthy
+      hyperswitch-web:
+        condition: service_started

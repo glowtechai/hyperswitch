@@ -124,6 +124,8 @@ fabric.properties
 ### dotenv ###
 .env
 .oneclick-setup.env
+.demo-tools/
+.run-evidence/
 
 ### Linux ###
 *~

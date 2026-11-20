@@ -1,0 +1,48 @@
+name: Run isolated Hyperswitch demo
+
+on:
+  push:
+    branches: [codex/run-hyperswitch-demo]
+    paths:
+      - '.github/workflows/run-demo.yml'
+      - 'deploy/demo.compose.yml'
+      - 'scripts/run_demo.sh'
+      - 'scripts/verify_demo.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isolated-demo-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  demo:
+    if: github.repository == 'glowtechai/hyperswitch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Start and verify the demo
+        run: bash scripts/run_demo.sh up
+      - name: Show container status
+        if: always()
+        run: bash scripts/run_demo.sh status
+      - name: Show startup diagnostics after failure
+        if: failure()
+        run: docker compose -f deploy/demo.compose.yml logs --no-color --tail=60 pg superposition hyperswitch-server
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: hyperswitch-demo-evidence
+          path: .run-evidence/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Remove this runner's disposable demo
+        if: always()
+        run: docker compose -f deploy/demo.compose.yml down --volumes --remove-orphans
